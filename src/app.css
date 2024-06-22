@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap");
+
+:root {
+  color-scheme: dark;
+  background-color: #2e3440;
+  color: #d8dee9;
+  accent-color: #88c0d0;
+  font-family: "Roboto Flex", system-ui;
+}
+body {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+  min-height: 100dvh;
+}
+* {
+  font: inherit;
+  border: solid 0 transparent;
+  margin: 0;
+  box-sizing: border-box;
+}
+button {
+  text-align: left;
+  cursor: pointer;
+}
+::placeholder {
+  color: #d8dee9;
+  opacity: 1;
+}
