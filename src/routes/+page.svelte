@@ -85,6 +85,11 @@
   }
 </script>
 
+<svelte:head>
+  {#if data.q}
+    <title>{data.q} on 1984</title>
+  {/if}
+</svelte:head>
 <Header q={data?.q} />
 {#if whitelisted.length}
   <Results data={whitelisted} />
