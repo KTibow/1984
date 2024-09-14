@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { handleMathSearch } from "$lib/math";
   import type { PageData } from "./$types";
   import Header from "./Header.svelte";
   import Results from "./Results.svelte";
@@ -91,6 +92,19 @@
   {/if}
 </svelte:head>
 <Header q={data?.q} />
+{#if data.q}
+  {@const mathResult = handleMathSearch(data.q)}
+  {#if mathResult}
+    {#if mathResult.unit}
+      <p class="result">
+        {mathResult.result}
+        {mathResult.unit}
+      </p>
+    {:else}
+      <p class="result">{mathResult.result}</p>
+    {/if}
+  {/if}
+{/if}
 {#if whitelisted.length}
   <Results data={whitelisted} />
 {/if}
@@ -106,7 +120,6 @@
   </div>
 {/if}
 {#if !data.q}
-  <p class="wrap">In a world awash with information, find solace in simplicity.</p>
   <div class="columns">
     <div>
       <h2>Ignorance is Strength</h2>
@@ -136,6 +149,10 @@
 {/if}
 
 <style>
+  .result {
+    font-size: 1.5rem;
+    padding: 0.5rem 1.5rem 1.5rem 1.5rem;
+  }
   .wrap {
     text-align: center;
 
