@@ -1,4 +1,5 @@
 import { BRAVE_KEY, COHERE_KEY } from "$env/static/private";
+import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad<
@@ -16,6 +17,10 @@ export const load: PageServerLoad<
 > = async ({ url }) => {
   const q = url.searchParams.get("q");
   if (!q) return;
+
+  if (q.startsWith("cache:")) {
+    redirect(302, "https://webcache.googleusercontent.com/search?q=" + q);
+  }
 
   const r = await fetch(
     "https://api.search.brave.com/res/v1/web/search?" +
