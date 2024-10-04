@@ -69,13 +69,27 @@ function evaluateExpression(expression: string): number | null {
 }
 
 function tokenizeExpression(expression: string): Token[] {
-  const regex = /(\d*\.?\d+|\+|\-|\*|\/|\^|\(|\))/g;
-  return (
-    expression.match(regex)?.map((token) => {
+  const regex = /(\d*\.?\d+|[+\-*/^()]|\/)/g;
+  const tokens = expression.match(regex) || [];
+
+  const result: Token[] = [];
+  let i = 0;
+
+  while (i < tokens.length) {
+    if (tokens[i] === '-' && (i === 0 || tokens[i - 1] === '(' || tokens[i - 1] === '+' || tokens[i - 1] === '-' || tokens[i - 1] === '*' || tokens[i - 1] === '/' || tokens[i - 1] === '^')) {
+      // Combine the '-' with the next number to form a negative number
+      const negativeNumber = tokens[i] + tokens[i + 1];
+      result.push(parseFloat(negativeNumber));
+      i += 2; // Skip the next token since it's part of the negative number
+    } else {
+      const token = tokens[i];
       const num = parseFloat(token);
-      return isNaN(num) ? token : num;
-    }) || []
-  );
+      result.push(isNaN(num) ? token : num);
+      i++;
+    }
+  }
+
+  return result;
 }
 
 function evaluateTokens(tokens: Token[]): number {
