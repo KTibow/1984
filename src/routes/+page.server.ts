@@ -1003,7 +1003,6 @@ const checkBlocked = (url: string) => {
     "*unblock*",
     "https://sites.google.com/d/1m3eSMYHlLdrY7uHVFlkEh5waY6jU7Xgw/p/1qmEv44CG6312zUNDQzrCLF0XGJiKg7X9/edit?pli=1",
     "*repl*.co*",
-    "*github*",
     "reddit.com",
   ];
 
