@@ -84,6 +84,14 @@
   $: if (data && data.data && browser) {
     data.data!.filter((x) => x.status == "u").forEach((x) => checkBlocked(new URL(x.url).hostname));
   }
+
+  const fetchDefinition = async (query: string) => {
+    if (!query.startsWith("define ")) return "";
+    const response = await fetch(`/define?q=${query}`);
+    if (!response.ok) return "";
+    const data = await response.json();
+    return data.definition;
+  };
 </script>
 
 <svelte:head>
@@ -104,6 +112,11 @@
       <p class="result">{mathResult.result}</p>
     {/if}
   {/if}
+  {#await fetchDefinition(data.q) then definition}
+    {#if definition}
+      <p class="result">{definition}</p>
+    {/if}
+  {/await}
 {/if}
 {#if whitelisted.length}
   <Results data={whitelisted} />
