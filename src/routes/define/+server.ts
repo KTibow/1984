@@ -16,6 +16,9 @@ export const GET: RequestHandler = async ({ url }) => {
   const wiktionaryData: { query: { pages: Record<string, { revisions?: [{ "*": string }] }> } } =
     await wiktionaryResponse.json();
 
+  if (!wiktionaryResponse.ok || !Object.keys(wiktionaryData.query.pages).length) {
+    return json({ debug: wiktionaryData }, { status: 500 });
+  }
   const page = Object.values(wiktionaryData.query.pages)[0];
   if (!page.revisions) {
     error(404, "Word not found");
