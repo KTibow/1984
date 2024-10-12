@@ -13,12 +13,12 @@ export const GET: RequestHandler = async ({ url }) => {
   const wiktionaryResponse = await fetch(
     `https://simple.wiktionary.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&titles=${word}`,
   );
+  if (!wiktionaryResponse.ok) {
+    error(500, `Wiktionary is ${wiktionaryResponse.status}ing`);
+  }
   const wiktionaryData: { query: { pages: Record<string, { revisions?: [{ "*": string }] }> } } =
     await wiktionaryResponse.json();
 
-  if (!wiktionaryResponse.ok || !Object.keys(wiktionaryData.query.pages).length) {
-    return json({ debug: wiktionaryData }, { status: 500 });
-  }
   const page = Object.values(wiktionaryData.query.pages)[0];
   if (!page.revisions) {
     error(404, "Word not found");
@@ -42,6 +42,9 @@ export const GET: RequestHandler = async ({ url }) => {
       temperature: 0,
     }),
   });
+  if (!groqResponse.ok) {
+    error(500, `Groq is ${groqResponse.status}ing`);
+  }
   const groqData = await groqResponse.json();
 
   const definition = groqData.choices[0].message.content.trim();
