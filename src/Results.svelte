@@ -67,6 +67,9 @@
     gap: 0.25rem;
     padding: 1.5rem;
   }
+  .horizontal-list:empty {
+    display: none;
+  }
   .horizontal-list a {
     display: flex;
     flex-direction: column;
