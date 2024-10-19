@@ -19,6 +19,7 @@ jobs:
       - name: Build
         run: |
           cd ./api
+          pnpm config set node-linker hoisted
           pnpm install
           pnpm build
       - name: Deploy to Azure Functions
