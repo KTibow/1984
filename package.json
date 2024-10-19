@@ -1,6 +1,5 @@
 {
   "name": "1984",
-  "main": "./api/dist/src/index.js",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
