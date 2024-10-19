@@ -740,13 +740,11 @@ by ${r.domain}`,
     });
     const json: { results: { index: number }[] } = await r.json();
 
-    return {
-      data: json.results
-        .map((r) => usable[r.index])
-        .concat(preRanking.filter((r) => r.status == "b")),
-    };
+    return json.results
+      .map((r) => usable[r.index])
+      .concat(preRanking.filter((r) => r.status == "b"));
   } else {
-    return { data: preRanking };
+    return preRanking;
   }
 };
 
