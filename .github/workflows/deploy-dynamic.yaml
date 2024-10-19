@@ -17,12 +17,14 @@ jobs:
         with:
           version: latest
       - name: CD
-        run: cd ./api
-      - name: Run install
-        run: pnpm install
+        run: |
+          cd ./api
+          pnpm install
+          pnpm build
       - name: Deploy to Azure Functions
         uses: azure/functions-action@v1
         with:
           app-name: 1984function
           slot-name: Production
+          package: api
           publish-profile: ${{ secrets.PUBLISH_PROFILE }}
