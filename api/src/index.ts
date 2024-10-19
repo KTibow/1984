@@ -792,6 +792,5 @@ const searchApi = async function (
 
 app.http("search", {
   methods: ["GET"],
-  authLevel: "anonymous",
   handler: searchApi,
 });
