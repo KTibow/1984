@@ -1,5 +1,7 @@
 <script lang="ts">
   export let q: string = "";
+
+  $: document.title = q ? `${q} (1984)` : "Literally 1984";
 </script>
 
 <header>
