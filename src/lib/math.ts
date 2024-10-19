@@ -1,4 +1,4 @@
-type MathResult = {
+export type MathResult = {
   result: number | string;
   unit?: string;
 };
@@ -76,7 +76,16 @@ function tokenizeExpression(expression: string): Token[] {
   let i = 0;
 
   while (i < tokens.length) {
-    if (tokens[i] === '-' && (i === 0 || tokens[i - 1] === '(' || tokens[i - 1] === '+' || tokens[i - 1] === '-' || tokens[i - 1] === '*' || tokens[i - 1] === '/' || tokens[i - 1] === '^')) {
+    if (
+      tokens[i] === "-" &&
+      (i === 0 ||
+        tokens[i - 1] === "(" ||
+        tokens[i - 1] === "+" ||
+        tokens[i - 1] === "-" ||
+        tokens[i - 1] === "*" ||
+        tokens[i - 1] === "/" ||
+        tokens[i - 1] === "^")
+    ) {
       // Combine the '-' with the next number to form a negative number
       const negativeNumber = tokens[i] + tokens[i + 1];
       result.push(parseFloat(negativeNumber));

@@ -1,408 +1,58 @@
-import { BRAVE_KEY, COHERE_KEY } from "$env/static/private";
-import { redirect } from "@sveltejs/kit";
-import type { PageServerLoad } from "./$types";
+import {
+  app,
+  type HttpRequest,
+  type InvocationContext,
+  type HttpResponseInit,
+} from "@azure/functions";
 
-export const load: PageServerLoad<
-  | {
-      data: {
-        title: string;
-        url: string;
-        description: string;
-        domain: string;
-        status: string;
-      }[];
-      q: string;
-    }
-  | undefined
-> = async ({ url }) => {
-  const q = url.searchParams.get("q");
-  if (!q) return;
+const fetchDefinition = async (query: string, groqKey: string) => {
+  if (!query.startsWith("define ")) return "";
 
-  if (q.startsWith("cache:")) {
-    redirect(302, "https://webcache.googleusercontent.com/search?q=" + q);
-  }
+  const word = query.replace("define ", "");
 
-  const r = await fetch(
-    "https://api.search.brave.com/res/v1/web/search?" +
-      new URLSearchParams({ q, count: "10", result_filter: "web" }),
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": BRAVE_KEY,
-      },
-    },
+  const wiktionaryResponse = await fetch(
+    `https://simple.wiktionary.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&titles=${word}`,
   );
-  const results = await r.json();
-  // const results = {
-  //   query: {
-  //     original: "internet",
-  //     show_strict_warning: false,
-  //     is_navigational: false,
-  //     is_news_breaking: false,
-  //     spellcheck_off: true,
-  //     country: "us",
-  //     bad_results: false,
-  //     should_fallback: false,
-  //     postal_code: "",
-  //     city: "",
-  //     header_country: "",
-  //     more_results_available: true,
-  //     state: "",
-  //   },
-  //   mixed: {
-  //     type: "mixed",
-  //     main: [
-  //       { type: "web", index: 0, all: false },
-  //       { type: "web", index: 1, all: false },
-  //       { type: "web", index: 2, all: false },
-  //       { type: "web", index: 3, all: false },
-  //       { type: "web", index: 4, all: false },
-  //       { type: "web", index: 5, all: false },
-  //       { type: "web", index: 6, all: false },
-  //       { type: "web", index: 7, all: false },
-  //       { type: "web", index: 8, all: false },
-  //       { type: "web", index: 9, all: false },
-  //       { type: "web", index: 10, all: false },
-  //       { type: "web", index: 11, all: false },
-  //       { type: "web", index: 12, all: false },
-  //       { type: "web", index: 13, all: false },
-  //       { type: "web", index: 14, all: false },
-  //       { type: "web", index: 15, all: false },
-  //       { type: "web", index: 16, all: false },
-  //       { type: "web", index: 17, all: false },
-  //       { type: "web", index: 18, all: false },
-  //       { type: "web", index: 19, all: false },
-  //     ],
-  //     top: [],
-  //     side: [],
-  //   },
-  //   type: "search",
-  //   web: {
-  //     type: "search",
-  //     results: [
-  //       {
-  //         title: "Internet - Wikipedia",
-  //         url: "https://en.wikipedia.org/wiki/Internet",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "The \u003Cstrong>Internet\u003C/strong> (\u003Cstrong>or\u003C/strong> \u003Cstrong>internet\u003C/strong>) is the global system of interconnected computer networks that uses the \u003Cstrong>Internet\u003C/strong> protocol suite (TCP/IP) to communicate between networks and devices. It is a network of networks that consists of private, public, academic, business, and government networks of local ...",
-  //         page_age: "2024-06-20T17:44:43",
-  //         profile: {
-  //           name: "Wikipedia",
-  //           url: "https://en.wikipedia.org/wiki/Internet",
-  //           long_name: "en.wikipedia.org",
-  //           img: "https://imgs.search.brave.com/0kxnVOiqv-faZvOJc7zpym4Zin1CTs1f1svfNZSzmfU/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "en.wikipedia.org",
-  //           hostname: "en.wikipedia.org",
-  //           favicon:
-  //             "https://imgs.search.brave.com/0kxnVOiqv-faZvOJc7zpym4Zin1CTs1f1svfNZSzmfU/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw",
-  //           path: "› wiki  › Internet",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/RNvm6_bz0UAaMS1Jky5bmv5VmcBajw6kegACLIc0jVM/rs:fit:200:200:1/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy8z/LzNmL0ludGVybmV0/X21hcF8xMDI0Xy1f/dHJhbnNwYXJlbnQl/MkNfaW52ZXJ0ZWQu/cG5n",
-  //           original:
-  //             "https://upload.wikimedia.org/wikipedia/commons/3/3f/Internet_map_1024_-_transparent%2C_inverted.png",
-  //           logo: false,
-  //         },
-  //         age: "2 days ago",
-  //       },
-  //       {
-  //         title: "Internet Essentials - Affordable Internet from Xfinity",
-  //         url: "https://www.xfinity.com/learn/internet-service/internet-essentials",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "See if you qualify for low-cost, fast and reliable Xfinity \u003Cstrong>Internet\u003C/strong> from Comcast now! low-income households benefit from access to online resources",
-  //         page_age: "2022-07-29T23:35:02",
-  //         profile: {
-  //           name: "Xfinity",
-  //           url: "https://www.xfinity.com/learn/internet-service/internet-essentials",
-  //           long_name: "xfinity.com",
-  //           img: "https://imgs.search.brave.com/Q3pq1kPlgMQY_0PGduizTsAaIdh_GVtsP7vAJ64DnFk/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNmI2ZTJjZjdi/OWQwMTY2MDA3M2Jm/ZDgwNTMwOTFkZjMy/MmRhNTA2MTg0YThi/ZGU2MTU3NGFhNjgz/MWUxOTgyMC93d3cu/eGZpbml0eS5jb20v",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "xfinity.com",
-  //           hostname: "www.xfinity.com",
-  //           favicon:
-  //             "https://imgs.search.brave.com/Q3pq1kPlgMQY_0PGduizTsAaIdh_GVtsP7vAJ64DnFk/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNmI2ZTJjZjdi/OWQwMTY2MDA3M2Jm/ZDgwNTMwOTFkZjMy/MmRhNTA2MTg0YThi/ZGU2MTU3NGFhNjgz/MWUxOTgyMC93d3cu/eGZpbml0eS5jb20v",
-  //           path: "› learn  › internet-service  › internet-essentials",
-  //         },
-  //         age: "July 29, 2022",
-  //       },
-  //       {
-  //         title: "Internet | Description, History, Uses, & Facts | Britannica",
-  //         url: "https://www.britannica.com/technology/Internet",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "\u003Cstrong>Internet\u003C/strong>, a system architecture that has revolutionized communications and methods of commerce by allowing various computer networks around the world to interconnect. The \u003Cstrong>Internet\u003C/strong> emerged in the United States in the 1970s but did not become viable to the general public until the early 1990s.",
-  //         page_age: "2024-06-03T19:00:05",
-  //         profile: {
-  //           name: "Britannica",
-  //           url: "https://www.britannica.com/technology/Internet",
-  //           long_name: "britannica.com",
-  //           img: "https://imgs.search.brave.com/hcLf2uAEj_yDbSzYRgdkKMQIWeIcfmsuchdJkpCh2_g/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzJmYzgxOWRk/Y2FhNWI2MzQzMjQ4/MWVhZDZhNGY3ZjY0/MDgxZTM3YWU5MzYz/NGU2MzM3Y2Y2YTYz/M2IyM2Y0NC93d3cu/YnJpdGFubmljYS5j/b20v",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "faq",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "britannica.com",
-  //           hostname: "www.britannica.com",
-  //           favicon:
-  //             "https://imgs.search.brave.com/hcLf2uAEj_yDbSzYRgdkKMQIWeIcfmsuchdJkpCh2_g/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzJmYzgxOWRk/Y2FhNWI2MzQzMjQ4/MWVhZDZhNGY3ZjY0/MDgxZTM3YWU5MzYz/NGU2MzM3Y2Y2YTYz/M2IyM2Y0NC93d3cu/YnJpdGFubmljYS5j/b20v",
-  //           path: "  › technology  › computers",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/9Nnku3KcDGdcE_1lXikAn-KAstEnsbrqm_1Ch7IUnRs/rs:fit:200:200:1/g:ce/aHR0cHM6Ly9jZG4u/YnJpdGFubmljYS5j/b20vMDMvMjM3NDAz/LTA1MC0wNUQxQTFF/NS9QZWdhc3VzLXNw/eXdhcmUtd2Vic2l0/ZS5qcGc",
-  //           original:
-  //             "https://cdn.britannica.com/03/237403-050-05D1A1E5/Pegasus-spyware-website.jpg",
-  //           logo: false,
-  //         },
-  //         age: "3 weeks ago",
-  //       },
-  //       {
-  //         title:
-  //           "Publishers' lawsuit leads to removal of 500,000 books from Internet Archive | TechSpot",
-  //         url: "https://www.techspot.com/news/103501-publishers-lawsuit-leads-removal-500000-books-internet-archive.html",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "Chris Freeland, IA&#x27;s director of library services, talked about the organization&#x27;s determination to restore access to these books by appealing the court&#x27;s decision: the case is currently...",
-  //         page_age: "2024-06-22T12:40:02",
-  //         profile: {
-  //           name: "TechSpot",
-  //           url: "https://www.techspot.com/news/103501-publishers-lawsuit-leads-removal-500000-books-internet-archive.html",
-  //           long_name: "techspot.com",
-  //           img: "https://imgs.search.brave.com/jgTgzWZtcn9w5X6xxDF2TEy0Bq-DntlLCDsfuXbXcuA/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzNWVmOTU3/MjRkMjVlODY5ZDUx/ZjA2YmU3MDUwMjcw/MGVhN2YyMjhiMmUz/MTU3NzNkZTYwNTlk/ZjEyNzViZC93d3cu/dGVjaHNwb3QuY29t/Lw",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "article",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "techspot.com",
-  //           hostname: "www.techspot.com",
-  //           favicon:
-  //             "https://imgs.search.brave.com/jgTgzWZtcn9w5X6xxDF2TEy0Bq-DntlLCDsfuXbXcuA/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzNWVmOTU3/MjRkMjVlODY5ZDUx/ZjA2YmU3MDUwMjcw/MGVhN2YyMjhiMmUz/MTU3NzNkZTYwNTlk/ZjEyNzViZC93d3cu/dGVjaHNwb3QuY29t/Lw",
-  //           path: "› news  › 103501-publishers-lawsuit-leads-removal-500000-books-internet-archive.html",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/KyxQohb-Ed94aob-ecghPIxMXx5gwxPn-IKKjdMbfL0/rs:fit:200:200:1/g:ce/aHR0cHM6Ly93d3cu/dGVjaHNwb3QuY29t/L2ltYWdlczIvbmV3/cy9iaWdpbWFnZS8y/MDI0LzA2LzIwMjQt/MDYtMjItaW1hZ2Ut/Mi5qcGc",
-  //           original:
-  //             "https://www.techspot.com/images2/news/bigimage/2024/06/2024-06-22-image-2.jpg",
-  //           logo: false,
-  //         },
-  //         age: "7 hours ago",
-  //       },
-  //       {
-  //         title: "Speedtest by Ookla - The Global Broadband Speed Test",
-  //         url: "https://www.speedtest.net/",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description: "Use Speedtest on all your devices with our free desktop and mobile apps.",
-  //         page_age: "2023-05-30T00:00:00",
-  //         profile: {
-  //           name: "Speedtest",
-  //           url: "https://www.speedtest.net/",
-  //           long_name: "speedtest.net",
-  //           img: "https://imgs.search.brave.com/8BdONB4nNZTHKLUo1L5aKGVXyK68V47AeTJeBzy4LFc/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZWExMTczYjQx/Zjk5ZmZmN2U3ZDYz/MjczNDI4NTYwYmIw/ODcyMjUxODc2NjRj/OGIyYmMxNTUyYmE5/YjllOTQ3My93d3cu/c3BlZWR0ZXN0Lm5l/dC8",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "speedtest.net",
-  //           hostname: "www.speedtest.net",
-  //           favicon:
-  //             "https://imgs.search.brave.com/8BdONB4nNZTHKLUo1L5aKGVXyK68V47AeTJeBzy4LFc/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZWExMTczYjQx/Zjk5ZmZmN2U3ZDYz/MjczNDI4NTYwYmIw/ODcyMjUxODc2NjRj/OGIyYmMxNTUyYmE5/YjllOTQ3My93d3cu/c3BlZWR0ZXN0Lm5l/dC8",
-  //           path: "",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/OlsaBI20Y4InI154FPE7cXWJ0M6XJvuIb9yWxwDOcxM/rs:fit:200:200:1/g:ce/aHR0cHM6Ly93d3cu/c3BlZWR0ZXN0Lm5l/dC9pbWFnZXMvc2hh/cmUtbG9nby5wbmc",
-  //           original: "https://www.speedtest.net/images/share-logo.png",
-  //           logo: true,
-  //         },
-  //         age: "May 30, 2023",
-  //       },
-  //       {
-  //         title: "Free & Low-Cost Internet Plans - National Digital Inclusion Alliance",
-  //         url: "https://www.digitalinclusion.org/free-low-cost-internet-plans/",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "NDIA has compiled a list of current offers from ISPs that will help low-income households to acquire service at low or no cost. Most have eligibility limitations linked to income or program enrollment.",
-  //         page_age: "2022-06-01T00:00:00",
-  //         profile: {
-  //           name: "Digitalinclusion",
-  //           url: "https://www.digitalinclusion.org/free-low-cost-internet-plans/",
-  //           long_name: "digitalinclusion.org",
-  //           img: "https://imgs.search.brave.com/CgZ2X3uhgYJnukVB3IT0S9ZT6a4_sRi8GBIf7VAGAFY/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYThlMjI3MWM2/N2U3YzEzMWY4NWNm/M2Y2Njc2YTBjOGI0/YWFmY2EwYTFiNmJm/OTIyOGEwN2EyN2Nm/ZTM4NjY5Ny93d3cu/ZGlnaXRhbGluY2x1/c2lvbi5vcmcv",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "digitalinclusion.org",
-  //           hostname: "www.digitalinclusion.org",
-  //           favicon:
-  //             "https://imgs.search.brave.com/CgZ2X3uhgYJnukVB3IT0S9ZT6a4_sRi8GBIf7VAGAFY/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYThlMjI3MWM2/N2U3YzEzMWY4NWNm/M2Y2Njc2YTBjOGI0/YWFmY2EwYTFiNmJm/OTIyOGEwN2EyN2Nm/ZTM4NjY5Ny93d3cu/ZGlnaXRhbGluY2x1/c2lvbi5vcmcv",
-  //           path: "  › home  › free & low-cost internet plans",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/PMy3-lKtU256v8g-rDVR6lRUIFicZr9wteaSbJDn4Dg/rs:fit:200:200:1/g:ce/aHR0cHM6Ly93d3cu/ZGlnaXRhbGluY2x1/c2lvbi5vcmcvd3At/Y29udGVudC91cGxv/YWRzLzIwMjIvMDUv/RnJlZS1sb3ctY29z/dC1pbnRlcm5ldC0x/LnBuZw",
-  //           original:
-  //             "https://www.digitalinclusion.org/wp-content/uploads/2022/05/Free-low-cost-internet-1.png",
-  //           logo: false,
-  //         },
-  //         age: "June 1, 2022",
-  //       },
-  //       {
-  //         title:
-  //           "First country to hold elections using internet voting - Crossword Clue Answer - June 22 2024",
-  //         url: "https://word.tips/crossword-solver/ny-times/first-country-to-hold-elections-using-internet-voting",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "First country to hold elections using \u003Cstrong>internet\u003C/strong> voting Crossword Clue Answers. Find the latest crossword clues from New York Times Crosswords, LA Times Crosswords and many more",
-  //         page_age: "2024-06-22T03:15:03",
-  //         profile: {
-  //           name: "Word",
-  //           url: "https://word.tips/crossword-solver/ny-times/first-country-to-hold-elections-using-internet-voting",
-  //           long_name: "word.tips",
-  //           img: "https://imgs.search.brave.com/auHisxg5AUZhESc8iqwAJ9Xgs9WK2dthaOOjOpI5h9s/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWQxZWQ5ZTE0/N2Q2MDRhYzM4N2M3/NmY5M2FmYWQ2ZTI0/NzVjNTRkY2Y0NjZi/YjBmYzgyMjlmYmRk/MjA4MTgyMi93b3Jk/LnRpcHMv",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "faq",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "word.tips",
-  //           hostname: "word.tips",
-  //           favicon:
-  //             "https://imgs.search.brave.com/auHisxg5AUZhESc8iqwAJ9Xgs9WK2dthaOOjOpI5h9s/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWQxZWQ5ZTE0/N2Q2MDRhYzM4N2M3/NmY5M2FmYWQ2ZTI0/NzVjNTRkY2Y0NjZi/YjBmYzgyMjlmYmRk/MjA4MTgyMi93b3Jk/LnRpcHMv",
-  //           path: "  › home  › clue",
-  //         },
-  //         age: "16 hours ago",
-  //       },
-  //       {
-  //         title: "AT&T Internet | Home Internet including AT&T Fiber",
-  //         url: "https://www.att.com/internet/",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "Get reliable, fast, and safe \u003Cstrong>Internet\u003C/strong> service from AT&amp;T, your local \u003Cstrong>Internet\u003C/strong> Service Provider (ISP). View \u003Cstrong>Internet\u003C/strong> plans, prices and offers in your area!",
-  //         page_age: "2023-04-05T00:00:00",
-  //         profile: {
-  //           name: "AT&T",
-  //           url: "https://www.att.com/internet/",
-  //           long_name: "att.com",
-  //           img: "https://imgs.search.brave.com/hC1Hbt8iDnwNDY2v6Lga4TkNn5OGgtgo8zx1Gj6IleM/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMGM5ZmRlMjMx/NWE0NDE5ZmU4MWM1/ZWEwOWQ3MDFjMmFk/MjQ3YzI1ODVlNDhm/OGI3OWIxZDcyYzg2/Yjc3MTk5YS93d3cu/YXR0LmNvbS8",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "faq",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "att.com",
-  //           hostname: "www.att.com",
-  //           favicon:
-  //             "https://imgs.search.brave.com/hC1Hbt8iDnwNDY2v6Lga4TkNn5OGgtgo8zx1Gj6IleM/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMGM5ZmRlMjMx/NWE0NDE5ZmU4MWM1/ZWEwOWQ3MDFjMmFk/MjQ3YzI1ODVlNDhm/OGI3OWIxZDcyYzg2/Yjc3MTk5YS93d3cu/YXR0LmNvbS8",
-  //           path: "  › at&t internet | home internet including at&t fiber",
-  //         },
-  //         age: "April 5, 2023",
-  //       },
-  //       {
-  //         title: "Build, Promote, and Defend the Internet - Internet Society",
-  //         url: "https://www.internetsociety.org/",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "The \u003Cstrong>Internet\u003C/strong> Society is a global charity empowering people to keep the \u003Cstrong>Internet\u003C/strong> a force for good: open, globally connected, secure, and trustworthy.",
-  //         page_age: "2022-04-19T00:00:00",
-  //         profile: {
-  //           name: "Internet Society",
-  //           url: "https://www.internetsociety.org/",
-  //           long_name: "internetsociety.org",
-  //           img: "https://imgs.search.brave.com/Ka80S7oJJFdQGNqe2SCePYrvl0TsAJUHc1gD2_nLxO0/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZTFjZDJlMDBk/YzE2MzE4MDk0Njkw/ODIyNmFkMTI1YTYz/NTRhMzViMzlhZjBk/MWJkMzRhZjgwYjAz/MTNiNWIwMC93d3cu/aW50ZXJuZXRzb2Np/ZXR5Lm9yZy8",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "internetsociety.org",
-  //           hostname: "www.internetsociety.org",
-  //           favicon:
-  //             "https://imgs.search.brave.com/Ka80S7oJJFdQGNqe2SCePYrvl0TsAJUHc1gD2_nLxO0/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZTFjZDJlMDBk/YzE2MzE4MDk0Njkw/ODIyNmFkMTI1YTYz/NTRhMzViMzlhZjBk/MWJkMzRhZjgwYjAz/MTNiNWIwMC93d3cu/aW50ZXJuZXRzb2Np/ZXR5Lm9yZy8",
-  //           path: "  › home",
-  //         },
-  //         thumbnail: {
-  //           src: "https://imgs.search.brave.com/Mx-tLckkv81lm-h6gECiH73JAdarhpZa7glnvwkrTDI/rs:fit:200:200:1/g:ce/aHR0cHM6Ly93d3cu/aW50ZXJuZXRzb2Np/ZXR5Lm9yZy93cC1j/b250ZW50L3VwbG9h/ZHMvMjAyMy8xMi9V/c2luZy10aGUtSW50/ZXJuZXQuanBn",
-  //           original:
-  //             "https://www.internetsociety.org/wp-content/uploads/2023/12/Using-the-Internet.jpg",
-  //           logo: false,
-  //         },
-  //         age: "April 19, 2022",
-  //       },
-  //       {
-  //         title: "A Brief History of the Internet",
-  //         url: "https://www.usg.edu/galileo/skills/unit07/internet07_02.phtml",
-  //         is_source_local: false,
-  //         is_source_both: false,
-  //         description:
-  //           "The \u003Cstrong>Internet\u003C/strong> started in the 1960s as a way for government researchers to share information. Computers in the &#x27;60s were large and immobile and in order to make use of information stored in any one computer, one had to either travel to the site of the computer or have magnetic computer tapes ...",
-  //         profile: {
-  //           name: "Usg",
-  //           url: "https://www.usg.edu/galileo/skills/unit07/internet07_02.phtml",
-  //           long_name: "usg.edu",
-  //           img: "https://imgs.search.brave.com/waGXkI7_nB_qBI1EmMo_tty6mJ_TmFBJilti7uJtRUQ/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZGU4NzM5Mjlm/NzBhMDA1NTgxZmQ3/ZjcyMDNkMGI5MGU0/Mjc4MzZlZmNhMmZi/NzEwZmJmNWY2Yjk4/N2YyYjJkNy93d3cu/dXNnLmVkdS8",
-  //         },
-  //         language: "en",
-  //         family_friendly: true,
-  //         type: "search_result",
-  //         subtype: "generic",
-  //         meta_url: {
-  //           scheme: "https",
-  //           netloc: "usg.edu",
-  //           hostname: "www.usg.edu",
-  //           favicon:
-  //             "https://imgs.search.brave.com/waGXkI7_nB_qBI1EmMo_tty6mJ_TmFBJilti7uJtRUQ/rs:fit:32:32:1/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZGU4NzM5Mjlm/NzBhMDA1NTgxZmQ3/ZjcyMDNkMGI5MGU0/Mjc4MzZlZmNhMmZi/NzEwZmJmNWY2Yjk4/N2YyYjJkNy93d3cu/dXNnLmVkdS8",
-  //           path: "› galileo  › skills  › unit07  › internet07_02.phtml",
-  //         },
-  //       },
-  //     ],
-  //     family_friendly: true,
-  //   },
-  // };
-  return {
-    q,
-    ...(await process(q, results)),
-  };
+  if (!wiktionaryResponse.ok) {
+    console.warn("Failed to fetch wiktionary definition", wiktionaryResponse.statusText);
+    return "";
+  }
+  const wiktionaryData: { query: { pages: Record<string, { revisions?: [{ "*": string }] }> } } =
+    await wiktionaryResponse.json();
+
+  const page = Object.values(wiktionaryData.query.pages)[0];
+  if (!page.revisions) {
+    console.warn("Failed to fetch wiktionary definition", page);
+    return "";
+  }
+  const content = page.revisions[0]["*"];
+
+  const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${groqKey}`,
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "user",
+          content: `<attachment>${content}</attachment>\nDefine ${word} in one sentence using only simple, common language.`,
+        },
+      ],
+      model: "llama-3.2-3b-preview",
+      temperature: 0,
+    }),
+  });
+  if (!groqResponse.ok) {
+    console.warn("Failed to use Groq", groqResponse.statusText);
+    return "";
+  }
+  const groqData = await groqResponse.json();
+
+  const definition = groqData.choices[0].message.content.trim();
+
+  return definition;
 };
 
 const checkBlocked = (url: string) => {
@@ -1036,7 +686,7 @@ const checkBlocked = (url: string) => {
 
   return "u";
 };
-const process = async (
+const processResults = async (
   query: string,
   data: { web: { results: { title: string; url: string; description: string }[] } },
 ) => {
@@ -1074,7 +724,7 @@ const process = async (
     const r = await fetch("https://api.cohere.com/v1/rerank", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${COHERE_KEY}`,
+        Authorization: `Bearer ${process.env.COHERE_KEY!}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -1099,3 +749,47 @@ by ${r.domain}`,
     return { data: preRanking };
   }
 };
+
+const searchApi = async function (
+  request: HttpRequest,
+  context: InvocationContext,
+): Promise<HttpResponseInit> {
+  const q = request.query.get("q");
+  if (!q) {
+    return {
+      status: 400,
+      body: "Please provide a search query",
+    };
+  }
+
+  const definitionPromise = fetchDefinition(q, process.env.GROQ_KEY!);
+
+  const r = await fetch(
+    "https://api.search.brave.com/res/v1/web/search?" +
+      new URLSearchParams({ q, count: "10", result_filter: "web" }),
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "X-Subscription-Token": process.env.BRAVE_KEY!,
+      },
+    },
+  );
+  const results = await r.json();
+  const processedResults = await processResults(q, results);
+
+  const definition = await definitionPromise;
+
+  return {
+    body: JSON.stringify({
+      results: processedResults,
+      definition: definition,
+    }),
+  };
+};
+
+app.http("search", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  handler: searchApi,
+});

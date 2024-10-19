@@ -1,0 +1,23 @@
+name: Deploy Dynamic
+
+on:
+  push:
+    branches: ["main"]
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: CD
+        run: cd ./api
+      - name: Run install
+        run: pnpm install
+      - name: Deploy to Azure Functions
+        uses: azure/functions-action@v1
+        with:
+          app-name: 1984function
+          publish-profile: ${{ secrets.PUBLISH_PROFILE }}

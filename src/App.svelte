@@ -1,14 +1,23 @@
 <script lang="ts">
-  import { browser } from "$app/environment";
-  import { handleMathSearch } from "$lib/math";
-  import type { PageData } from "./$types";
+  import { onMount } from "svelte";
   import Header from "./Header.svelte";
   import Results from "./Results.svelte";
+  import { handleMathSearch, type MathResult } from "./lib/math";
 
-  export let data: PageData;
+  let q = "";
+  let definition = "";
+  let mathResult: MathResult | null = null;
+  let _results: {
+    status: string;
+    title: string;
+    url: string;
+    description: string;
+    domain: string;
+  }[] = [];
+  let whitelisted: typeof _results = [];
+  let blacklisted: typeof _results = [];
 
   let socket: WebSocket | undefined;
-
   let statuses: Record<string, "pending" | "blocked" | "unblocked"> = {};
   const checkBlocked = async (host: string) => {
     if (statuses[host] == "blocked") return true;
@@ -38,101 +47,77 @@
       }
     }, 600);
 
-    await new Promise((resolve) => {
-      const handler = (e: MessageEvent) => {
-        const d = JSON.parse(e.data);
-        if (d.action == "host_lookup") {
-          if (d.request.host != host) return;
-          const category = d.cat;
-          const blocked = [
-            0, 3, 4, 5, 8, 11, 12, 13, 21, 28, 31, 32, 33, 38, 39, 42, 55, 60, 61, 66, 67, 70, 71,
-            72, 78, 94, 100, 101, 102, 113, 116, 117, 118, 126, 134, 135, 137, 139, 140, 141, 144,
-            200, 201, 202, 203, 1002, 1003,
-          ].includes(category);
+    const handler = (e: MessageEvent) => {
+      const d = JSON.parse(e.data);
+      if (d.action == "host_lookup") {
+        if (d.request.host != host) return;
+        const category = d.cat;
+        const blocked = [
+          0, 3, 4, 5, 8, 11, 12, 13, 21, 28, 31, 32, 33, 38, 39, 42, 55, 60, 61, 66, 67, 70, 71, 72,
+          78, 94, 100, 101, 102, 113, 116, 117, 118, 126, 134, 135, 137, 139, 140, 141, 144, 200,
+          201, 202, 203, 1002, 1003,
+        ].includes(category);
 
-          statuses = { ...statuses, [host]: blocked ? "blocked" : "unblocked" };
-          resolve(blocked);
-          socket!.removeEventListener("message", handler);
-        }
-      };
-      socket!.addEventListener("message", handler);
-    });
+        statuses = { ...statuses, [host]: blocked ? "blocked" : "unblocked" };
+        socket!.removeEventListener("message", handler);
+      }
+    };
+    socket!.addEventListener("message", handler);
   };
 
-  let whitelisted: {
-    title: string;
-    url: string;
-    description: string;
-    domain: string;
-  }[] = [];
-  let blacklisted: {
-    title: string;
-    url: string;
-    description: string;
-    domain: string;
-  }[] = [];
+  onMount(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    q = urlParams.get("q") || "";
+    if (q) {
+      fetchResults();
+    }
+  });
 
-  $: if (data && data.data && browser) {
-    whitelisted = data.data!.filter(
+  async function fetchResults() {
+    const response = await fetch(
+      `https://1984function.azurewebsites.net/api/search?q=${encodeURIComponent(q)}`,
+    );
+    const json = await response.json();
+    _results = json.results;
+    definition = json.definition;
+    mathResult = handleMathSearch(q);
+  }
+
+  $: {
+    for (const result of _results) {
+      if (result.status == "u") {
+        checkBlocked(new URL(result.url).hostname);
+      }
+    }
+    whitelisted = _results.filter(
       (x) =>
         x.status == "w" || (x.status == "u" && statuses[new URL(x.url).hostname] == "unblocked"),
     );
-    blacklisted = data.data!.filter(
+    blacklisted = _results.filter(
       (x) => x.status == "b" || (x.status == "u" && statuses[new URL(x.url).hostname] == "blocked"),
     );
   }
-  $: if (data && data.data && browser) {
-    data.data!.filter((x) => x.status == "u").forEach((x) => checkBlocked(new URL(x.url).hostname));
-  }
-
-  const fetchDefinition = async (query: string) => {
-    if (!query.startsWith("define ")) return "";
-    const response = await fetch(`/define?q=${query}`);
-    if (!response.ok) return "";
-    const data = await response.json();
-    return data.definition;
-  };
 </script>
 
-<svelte:head>
-  {#if data.q}
-    <title>{data.q} on 1984</title>
+<Header {q} />
+
+{#if q}
+  {#if definition}
+    <p class="result">{definition}</p>
   {/if}
-</svelte:head>
-<Header q={data?.q} />
-{#if data.q}
-  {@const mathResult = handleMathSearch(data.q)}
+
   {#if mathResult}
-    {#if mathResult.unit}
-      <p class="result">
-        {mathResult.result}
-        {mathResult.unit}
-      </p>
-    {:else}
-      <p class="result">{mathResult.result}</p>
-    {/if}
+    <p class="result">
+      {mathResult.result}
+      {#if mathResult.unit}{mathResult.unit}{/if}
+    </p>
   {/if}
-  {#await fetchDefinition(data.q) then definition}
-    {#if definition}
-      <p class="result">{definition}</p>
-    {/if}
-  {/await}
 {/if}
-{#if whitelisted.length}
-  <Results data={whitelisted} />
+
+{#if whitelisted.length || blacklisted.length}
+  <Results {whitelisted} {blacklisted} />
 {/if}
-{#if blacklisted.length}
-  <div class="container">
-    {#each blacklisted as result}
-      <a href={result.url}>
-        <p style:opacity="0.8" style:font-size="0.875rem">{result.domain}</p>
-        <p style:font-size="0.875rem">{result.title}</p>
-        <p style:margin-top="auto">Blocked</p>
-      </a>
-    {/each}
-  </div>
-{/if}
-{#if !data.q}
+{#if !q}
   <div class="columns">
     <div>
       <h2>Ignorance is Strength</h2>
@@ -166,14 +151,7 @@
     font-size: 1.5rem;
     padding: 0.5rem 1.5rem 1.5rem 1.5rem;
   }
-  .wrap {
-    text-align: center;
 
-    background-color: #3b4252;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    margin: 0 1.5rem;
-  }
   .columns {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -196,21 +174,12 @@
     font-weight: 800;
     margin-bottom: 2rem;
   }
-  .container {
-    display: flex;
-    gap: 0.25rem;
-    padding: 1.5rem;
-  }
-  .container a {
-    display: flex;
-    flex-direction: column;
-    width: 10rem;
-    height: 10rem;
+  .wrap {
+    text-align: center;
 
-    color: inherit;
-    text-decoration: none;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
     background-color: #3b4252;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin: 0 1.5rem;
   }
 </style>

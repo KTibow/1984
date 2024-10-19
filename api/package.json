@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "main": "./build/index.js",
+  "scripts": {
+    "start": "concurrently --raw \"esbuild src/index.ts --watch --outfile=build/index.js\" \"func start --verbose --enableDebug\" "
+  },
+  "devDependencies": {
+    "@azure/functions": "^4.5.1",
+    "esbuild": "^0.24.0",
+    "concurrently": "^9.0.1"
+  }
+}

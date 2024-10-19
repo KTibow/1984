@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let q: string | undefined;
+  export let q: string = "";
 </script>
 
 <header>
@@ -13,7 +13,7 @@
   </div>
 
   <form>
-    <input type="search" name="q" value={q || ""} required placeholder="Newspeak in..." />
+    <input type="search" name="q" value={q} required placeholder="Newspeak in..." />
     <button>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <path
@@ -30,6 +30,7 @@
     padding: 1.5rem;
     height: 6rem;
   }
+
   .logo {
     display: flex;
     align-items: center;
