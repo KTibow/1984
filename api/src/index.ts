@@ -700,16 +700,20 @@ const processResults = async (
   await Promise.all(
     data.web.results.map(async (result) => {
       const website = new URL(result.url).hostname;
-      let websiteName =
+      const websiteName =
         website == "news.ycombinator.com"
           ? "Hacker News"
           : website == "stackoverflow.com"
             ? "Stack Overflow"
-            : website.replace(".co.uk", "").split(".").at(-2);
+            : website == "lightspeedsystems.com"
+              ? "Lightspeed Systems"
+              : website == "change.org"
+                ? "Change.org"
+                : website.replace(".co.uk", "").split(".").at(-2);
 
       preRanking.push({
         title: websiteName
-          ? result.title.replace(new RegExp(`[-|] ${websiteName}$`, "i"), "")
+          ? result.title.replace(new RegExp(`[-|·] ${websiteName}$`, "i"), "")
           : result.title,
         url: result.url,
         description: result.description,
