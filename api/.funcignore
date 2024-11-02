@@ -1,4 +1,2 @@
-node_modules/esbuild
-node_modules/concurrently
-node_modules/.pnpm
+node_modules
 *.ts

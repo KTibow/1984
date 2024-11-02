@@ -2,8 +2,8 @@
   "type": "module",
   "main": "./build/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --outfile=build/index.js",
-    "start": "concurrently --raw \"esbuild src/index.ts --watch --outfile=build/index.js\" \"func start --verbose --enableDebug\" "
+    "build": "esbuild src/index.ts --bundle --format=esm --platform=node --external:@azure/functions-core --outfile=build/index.js",
+    "start": "concurrently --raw \"esbuild src/index.ts --watch --bundle --format=esm --platform=node --external:@azure/functions-core --outfile=build/index.js\" \"func start --verbose --enableDebug\" "
   },
   "devDependencies": {
     "@azure/functions": "^4.5.1",
