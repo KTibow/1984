@@ -2,8 +2,8 @@ import {
   app,
   type HttpRequest,
   type InvocationContext,
-  type HttpResponseInit,
-} from "@azure/functions";
+  type HttpResponse,
+} from "@azure/functions/src/index.js";
 
 const fetchDefinition = async (query: string, groqKey: string) => {
   if (!query.startsWith("define ")) return "";
@@ -755,7 +755,7 @@ by ${r.domain}`,
 const searchApi = async function (
   request: HttpRequest,
   context: InvocationContext,
-): Promise<HttpResponseInit> {
+): Promise<HttpResponse> {
   const q = request.query.get("q");
   if (!q) {
     return {
