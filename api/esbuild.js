@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import { build, context } from "esbuild";
 
 // Common configuration
 const baseConfig = {
@@ -15,6 +15,12 @@ const baseConfig = {
 
 // Build or watch based on passed argument
 const isWatch = process.argv.includes("--watch");
-const config = isWatch ? { ...baseConfig, watch: true } : baseConfig;
 
-await build(config);
+if (isWatch) {
+  const ctx = await context(baseConfig);
+  await ctx.watch();
+  console.log("Watching...");
+} else {
+  await build(baseConfig);
+  console.log("Build complete");
+}
